@@ -1,0 +1,41 @@
+#!/bin/bash
+
+log_file_path="path_to_your_log_file.log"
+log_file="log_analysis.log"
+
+# Configure logging
+log_format='%(%Y-%m-%d %H:%M:%S)T - %{level}: %{message}'
+log_file_handler() {
+    while IFS= read -r line; do
+        printf "%s - INFO: %s\n" "$(date +"%Y-%m-%d %H:%M:%S")" "$line"
+    done >> "$log_file"
+}
+
+# Function to handle Ctrl+C signal
+signal_handler() {
+    echo "Monitoring stopped."
+    exit 0
+}
+
+# Function to monitor log file
+monitor_log_file() {
+    echo "Monitoring log file: $log_file_path"
+    echo "Press Ctrl+C to stop monitoring."
+
+    trap signal_handler SIGINT
+
+    # Execute the 'tail' command to monitor the log file
+    tail -F "$log_file_path" | log_file_handler &
+    tail_pid=$!
+
+    # Wait for Ctrl+C
+    wait $tail_pid
+}
+
+# Check if log file exists
+if [ ! -f "$log_file_path" ]; then
+    echo "Log file '$log_file_path' not found." >&2
+    exit 1
+else
+    monitor_log_file
+fi
